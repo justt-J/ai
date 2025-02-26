@@ -1,0 +1,38 @@
+title GT-FMO - FLEET CARD APPLICATION
+
+autonumber
+participant GT Assignee as GTA
+participant GT IS as GTIS
+actor Fleet Admin Leasing as FT_L
+actor Fleet Admin as FT_A
+participant GT Proponent as GTP
+participant Fuel Provider as FP
+participant Courier Nonpareil as Courier
+
+FT_L -> FT_A: Endrosement for Fuel Card
+FT_A -> GTA: Provide Fuel Card application form
+GTA -> +GTIS: Endrose to GT-IS for approval
+GTIS -> -GTIS: Fuel Card application approval
+GTIS -> GTA: Return to Assignee
+GTA -> FT_A: Forward approved Fuel Card form
+FT_A -> +GTP: Endorse for final approval
+GTP -> -GTP: Fuel Card application approval
+GTP -> FT_A: Return to Fleet Admin
+FT_A -> FP: Endorse Fuel Card application
+note over FP: SLA: 10-15 working days
+FP -> FT_A: Delivery of fleet card
+FT_A -> GTA: Email notification of the availability of Fleet Card
+alt GTP2 PICK-UP
+GTA -> FT_A: Advise pick up date and time
+GTA -> +FT_A: Pick-up Fleet Card
+FT_A -> -FT_A: Record turn-over of Fuel Card
+else DOOR-TO-DOOR (DTD) REQUEST
+FT_A -> GTA: Provide DTD form
+GTA -> +GTP: Endorse for approval of DTD
+GTP -> -GTP: Approve request for DTD
+GTP -> FT_A: Return approved DTD form
+FT_A -> Courier: Request for Fuel Card pickup
+Courier -> +FT_A: Pickup Fuel Card
+FT_A -> -FT_A: Record turnover of Fuel Card
+Courier -> GTA: Deliver Fuel Card
+GTA -> FT_A: Acknowledge receipt of Fuel Card
