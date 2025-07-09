@@ -22,7 +22,6 @@ class OllamaEmbeddingFunction(EmbeddingFunction):
     def __call__(self, texts: Documents):
         if isinstance(texts, str):
             texts = [texts]
-
         embeddings = []
         for text in texts:
             response = requests.post(
@@ -100,12 +99,30 @@ def index_documents_in_folder():
     print("✅ All supported documents indexed.\n")
 
 # ========== LLM GENERATION ==========
-def query_ollama(prompt):
+def query_ollama(context, question):
+    prompt = f"""
+You are a highly knowledgeable assistant. Use only the provided context to answer the question below. 
+If the answer is not explicitly present or cannot be inferred from the context, reply with: "I don't know based on the context."
+
+Instructions:
+- Carefully analyze the context and synthesize a clear, accurate, and complete answer.
+- If the question is complex, break down your answer into logical sections.
+- Do not mention the context or data source in your answer.
+- Avoid speculation; only answer what can be supported by the context.
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+"""
     payload = {
         "model": LLM_MODEL,
         "prompt": prompt,
         "stream": False,
-        "temperature": 0
+        "temperature": 0.2
     }
     response = requests.post(
         f"{OLLAMA_URL}/api/generate",
@@ -118,12 +135,12 @@ def query_ollama(prompt):
         raise RuntimeError(f"Ollama generation error: {response.status_code} - {response.text}")
 
 # ========== RAG QUERY ==========
-def rag_query(question):
+def rag_query(question, n_results=5):
     embed_fn = OllamaEmbeddingFunction()
     client = chromadb.PersistentClient(path=CHROMA_PATH)
     collection = client.get_or_create_collection(name="rag_docs", embedding_function=embed_fn)
 
-    results = collection.query(query_texts=[question], n_results=3)
+    results = collection.query(query_texts=[question], n_results=n_results)
     context_chunks = results.get("documents", [[]])[0]
 
     if not context_chunks:
@@ -131,22 +148,15 @@ def rag_query(question):
         return
 
     context = "\n".join(context_chunks)
-    prompt = f"""
-You are a helpful assistant. Only answer using the context provided below.
-If you cannot answer, respond with: "I don't know based on the context."
+    answer = query_ollama(context, question)
+    return query_ollama(context, question)
+    # print("\n🔍 Answer:\n" + answer)
 
-Context:
-{context}
 
-Question:
-{question}
-"""
-    answer = query_ollama(prompt)
-    print("\n🔍 Answer:\n" + answer)
 
 # ========== MAIN ==========
 if __name__ == "__main__":
-    print("📚 RAG with Ollama + ChromaDB")
+    print("📚 Retrieval-Augmented Generation (RAG) with Ollama + ChromaDB")
     index_documents_in_folder()
 
     while True:
